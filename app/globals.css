@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply min-h-screen bg-slate-50 bg-confetti font-body text-slate-900;
+}
+
+a {
+  @apply transition-colors;
+}
+
+button,
+input,
+select {
+  @apply outline-none;
+}
+
+.page-shell {
+  @apply mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8;
+}
+
+.panel {
+  @apply rounded-[2rem] border border-white/60 bg-white/90 shadow-card backdrop-blur;
+}

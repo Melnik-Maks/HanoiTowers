@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  child
+  admin
+}
+
+enum LevelSource {
+  classic
+  json
+}
+
+enum TournamentStatus {
+  draft
+  active
+  finished
+}
+
+enum ParticipantStatus {
+  joined
+  in_progress
+  finished
+}
+
+model User {
+  id           String                  @id @default(cuid())
+  email        String                  @unique
+  name         String
+  passwordHash String
+  role         UserRole                @default(child)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  gameResults  GameResult[]
+  tournaments  Tournament[]            @relation("TournamentCreator")
+  participants TournamentParticipant[]
+}
+
+model GameResult {
+  id           String      @id @default(cuid())
+  userId       String
+  source       LevelSource
+  jsonLevelId  Int?
+  classicDisks Int?
+  durationMs   Int
+  moves        Int
+  completedAt  DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+}
+
+model Tournament {
+  id           String                  @id @default(cuid())
+  name         String
+  code         String                  @unique
+  createdById  String
+  status       TournamentStatus        @default(draft)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  createdBy    User                    @relation("TournamentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants TournamentParticipant[]
+  levels       TournamentLevel[]
+  levelResults TournamentLevelResult[]
+
+  @@index([createdById, createdAt])
+}
+
+model TournamentLevel {
+  id           String                 @id @default(cuid())
+  tournamentId String
+  orderIndex   Int
+  jsonLevelId  Int
+  createdAt    DateTime               @default(now())
+  tournament   Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  results      TournamentLevelResult[]
+
+  @@unique([tournamentId, orderIndex])
+  @@index([tournamentId, jsonLevelId])
+}
+
+model TournamentParticipant {
+  id                String                  @id @default(cuid())
+  tournamentId      String
+  userId            String
+  status            ParticipantStatus       @default(joined)
+  currentLevelIndex Int                     @default(0)
+  completedLevels   Int                     @default(0)
+  totalDurationMs   Int                     @default(0)
+  totalMoves        Int                     @default(0)
+  joinedAt          DateTime                @default(now())
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  tournament        Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  levelResults      TournamentLevelResult[]
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId, status])
+}
+
+model TournamentLevelResult {
+  id                String                @id @default(cuid())
+  tournamentId      String
+  tournamentLevelId String
+  participantId     String
+  jsonLevelId       Int
+  orderIndex        Int
+  durationMs        Int
+  moves             Int
+  completedAt       DateTime              @default(now())
+  tournament        Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentLevel   TournamentLevel       @relation(fields: [tournamentLevelId], references: [id], onDelete: Cascade)
+  participant       TournamentParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, tournamentLevelId])
+  @@index([tournamentId, completedAt])
+}
